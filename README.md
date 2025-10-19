@@ -433,6 +433,11 @@ If you use Markdown3D MCP in your research, please cite:
 }
 ```
 
+### Donate:
+
+[![Ko-Fi](https://cdn.ko-fi.com/cdn/kofi3.png?v=3)](https://ko-fi.com/driftjohnson)
+
+
 ### Related Projects
 
 - Agentic System Prompt (MD to NM3) - [CHUNGUS-3D](https://github.com/MushroomFleet/CHUNGUS-nested-markdown-3D), tested with Sonnet and Haiku 4.5
@@ -504,6 +509,7 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 **Made with ❤️ by the Markdown3D team**
 
 *Transform your documents into navigable 3D knowledge spaces*
+
 
 
 
