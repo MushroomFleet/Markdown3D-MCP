@@ -426,9 +426,9 @@ If you use Markdown3D MCP in your research, please cite:
 ```bibtex
 @software{markdown3d_mcp,
   title = {Markdown3D MCP: Semantic 3D Document Visualization},
-  author = {[Your Name]},
+  author = {[Drift Johnson]},
   year = {2025},
-  url = {https://github.com/yourusername/markdown3d-mcp},
+  url = {https://github.com/MushroomFleet/markdown3d-mcp},
   version = {1.0.0}
 }
 ```
@@ -514,3 +514,4 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 **Made with ❤️ by the Markdown3D team**
 
 *Transform your documents into navigable 3D knowledge spaces*
+
