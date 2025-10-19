@@ -437,8 +437,10 @@ If you use Markdown3D MCP in your research, please cite:
 
 *(Placeholder for related work, inspirations, and acknowledgments)*
 
-- Project Name 1 - Description
-- Project Name 2 - Description
+- Agentic System Prompt (MD to NM3) - [CHUNGUS-3D](https://github.com/MushroomFleet/CHUNGUS-nested-markdown-3D), tested with Sonnet and Haiku 4.5
+- NM3 Nested Markdown 3D xml standard - [NM3 Specification](https://github.com/MushroomFleet/NM3-nested-markdown-3d).
+- Careless Canvas 3D (NM3/NML) - Main Editing Suite for NM3 formatted xml
+- 3D Perplexity Search Graph (NM3) - Coming Soon.
 
 ### Contributors
 
@@ -514,4 +516,5 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 **Made with ❤️ by the Markdown3D team**
 
 *Transform your documents into navigable 3D knowledge spaces*
+
 
