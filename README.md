@@ -50,7 +50,7 @@ npm install -g markdown3d-mcp
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/markdown3d-mcp.git
+git clone https://github.com/MushroomFleet/Markdown3D-MCP
 cd markdown3d-mcp
 
 # Install dependencies
@@ -273,7 +273,7 @@ npm start
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/markdown3d-mcp.git
+git clone https://github.com/MushroomFleet/Markdown3D-MCP
 cd markdown3d-mcp
 
 # Install dependencies
@@ -397,7 +397,7 @@ This is the content...]]></content>
 
 To view the generated 3D visualizations, use the **Careless-Canvas-3D** application:
 
-🔗 **[Careless-Canvas-3D Viewer](https://github.com/yourusername/careless-canvas-3d)** *(placeholder link)*
+🔗 **[Careless-Canvas-3D Viewer](https://github.com/MushroomFleet/careless-canvas-3d)** *(placeholder link)*
 
 The Careless-Canvas-3D viewer provides:
 - Interactive 3D navigation
@@ -435,22 +435,10 @@ If you use Markdown3D MCP in your research, please cite:
 
 ### Related Projects
 
-*(Placeholder for related work, inspirations, and acknowledgments)*
-
 - Agentic System Prompt (MD to NM3) - [CHUNGUS-3D](https://github.com/MushroomFleet/CHUNGUS-nested-markdown-3D), tested with Sonnet and Haiku 4.5
 - NM3 Nested Markdown 3D xml standard - [NM3 Specification](https://github.com/MushroomFleet/NM3-nested-markdown-3d).
 - Careless Canvas 3D (NM3/NML) - Main Editing Suite for NM3 formatted xml
 - 3D Perplexity Search Graph (NM3) - Coming Soon.
-
-### Contributors
-
-*(Placeholder for contributors list)*
-
-- [Contributor Name](https://github.com/contributor) - Role/Contribution
-
-### Acknowledgments
-
-*(Placeholder for acknowledgments)*
 
 Special thanks to:
 - Organizations or individuals who supported the project
@@ -516,5 +504,6 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 **Made with ❤️ by the Markdown3D team**
 
 *Transform your documents into navigable 3D knowledge spaces*
+
 
 
