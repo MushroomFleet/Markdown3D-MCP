@@ -656,14 +656,29 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 - **Issue Tracker**: [https://github.com/yourusername/markdown3d-mcp/issues](https://github.com/yourusername/markdown3d-mcp/issues)
 - **MCP Protocol**: [https://modelcontextprotocol.io](https://modelcontextprotocol.io)
 
-## 📞 Support
+## 📚 Citation
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/markdown3d-mcp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/markdown3d-mcp/discussions)
-- **Email**: support@example.com *(placeholder)*
+### Academic Citation
+
+If you use this codebase in your research or project, please cite:
+
+```bibtex
+@software{markdown3d_mcp,
+  title = {Markdown3D MCP: MCP transforms MD into NM3 formatted xml},
+  author = {[Drift Johnson]},
+  year = {2025},
+  url = {https://github.com/MushroomFleet/Markdown3D-MCP},
+  version = {1.0.0}
+}
+```
+
+### Donate:
+
+[![Ko-Fi](https://cdn.ko-fi.com/cdn/kofi3.png?v=3)](https://ko-fi.com/driftjohnson)
 
 ---
 
 **Made with ❤️ by the Markdown3D team**
 
 *Transform your documents into navigable 3D knowledge spaces*
+
