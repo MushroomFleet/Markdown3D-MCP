@@ -1,5 +1,4 @@
-import { MarkdownParser } from './core/parser.js';
-import { SimpleTransformer } from './core/transformer.js';
+import { EnhancedTransformer } from './core/enhanced-transformer.js';
 import { NM3XMLBuilder } from './core/xml-builder.js';
 import fs from 'fs';
 
@@ -52,20 +51,15 @@ Key papers and sources for further reading.
 `;
 
 async function test() {
-  console.log('🚀 Testing Markdown3D transformation...\n');
+  console.log('🚀 Testing Markdown3D Enhanced transformation...\n');
   
-  // Parse
-  const parser = new MarkdownParser();
-  const sections = parser.parse(testMarkdown);
-  console.log(`📄 Parsed ${sections.length} sections:`);
-  sections.forEach(s => {
-    console.log(`  ${' '.repeat(s.level * 2)}• [${s.id}] ${s.title} (${s.metadata.wordCount} words)`);
-  });
+  // Transform using EnhancedTransformer (includes parsing, classification, spatial optimization)
+  const transformer = new EnhancedTransformer();
+  const nm3Doc = await transformer.transform(testMarkdown);
   
-  // Transform
-  const transformer = new SimpleTransformer();
-  const nm3Doc = transformer.transform(sections);
   console.log(`\n🎯 Generated ${nm3Doc.nodes.length} nodes and ${nm3Doc.links.length} links`);
+  console.log(`📊 Node types:`, [...new Set(nm3Doc.nodes.map(n => n.type))].join(', '));
+  console.log(`🎨 Colors used:`, [...new Set(nm3Doc.nodes.map(n => n.color))].join(', '));
   
   // Build XML
   const xmlBuilder = new NM3XMLBuilder();
@@ -90,7 +84,6 @@ async function test() {
   
   // Summary
   console.log('\n✨ Summary:');
-  console.log(`   Sections parsed: ${sections.length}`);
   console.log(`   Nodes created: ${nm3Doc.nodes.length}`);
   console.log(`   Links created: ${nm3Doc.links.length}`);
   console.log(`   XML size: ${xml.length} bytes`);

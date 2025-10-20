@@ -36,11 +36,11 @@ export class IntelligentShapeAssigner {
     
     // Sphere: Atomic concepts, single ideas, questions
     if (classification.contentType.hasQuestions) score += 3;
-    if (section.children.length === 0) score += 2;
-    if (section.metadata.wordCount < 50) score += 2;
-    if (classification.category === 'conceptual') score += 2;
-    if (!section.metadata.hasList && !section.metadata.hasTable) score += 1;
-    if (classification.entities.concepts.length > 0) score += 1;
+    if (section.children.length === 0) score += 1;  // Reduced from 2
+    if (section.metadata.wordCount < 50) score += 1;  // Reduced from 2
+    if (classification.category === 'conceptual') score += 1;  // Reduced from 2
+    if (!section.metadata.hasList && !section.metadata.hasTable) score += 0.5;
+    if (classification.entities.concepts.length > 0) score += 0.5;
     
     // Keywords that suggest atomic concepts
     const sphereKeywords = ['idea', 'concept', 'thought', 'question', 'hypothesis', 
@@ -57,12 +57,15 @@ export class IntelligentShapeAssigner {
     let score = 0;
     
     // Cube: Structured information, data, foundations
-    if (section.metadata.hasTable) score += 4;
-    if (section.metadata.hasCode) score += 3;
-    if (classification.category === 'technical') score += 3;
-    if (classification.category === 'reference') score += 2;
-    if (section.children.length > 3) score += 2;
+    if (section.metadata.hasTable) score += 5;  // Increased
+    if (section.metadata.hasCode) score += 4;   // Increased
+    if (classification.category === 'technical') score += 4;  // Increased
+    if (classification.category === 'reference') score += 3;  // Increased
+    if (section.children.length > 3) score += 3;  // Increased
     if (classification.entities.technologies.length > 2) score += 2;
+    
+    // Parent sections with many children
+    if (section.children.length > 0) score += 2;
     
     // Structured content patterns
     const structurePatterns = [
@@ -84,8 +87,12 @@ export class IntelligentShapeAssigner {
     let score = 0;
     
     // Cylinder: Processes, timelines, sequences
-    if (classification.category === 'procedural') score += 4;
-    if (classification.contentType.hasInstructions) score += 3;
+    if (classification.category === 'procedural') score += 5;  // Increased
+    if (classification.contentType.hasInstructions) score += 4;  // Increased
+    
+    // Check title for phase/step indicators
+    const titleLower = section.title.toLowerCase();
+    if (/phase|step|stage/.test(titleLower)) score += 4;
     
     // Sequential keywords
     const sequentialKeywords = ['step', 'phase', 'stage', 'process', 'timeline', 
@@ -112,9 +119,9 @@ export class IntelligentShapeAssigner {
     let score = 0;
     
     // Pyramid: Hierarchies, priorities, conclusions
-    if (section.metadata.hasList && section.level <= 2) score += 3;
-    if (classification.category === 'analytical') score += 2;
-    if (classification.category === 'summary') score += 2;
+    if (section.metadata.hasList && section.level <= 2) score += 4;  // Increased
+    if (classification.category === 'analytical') score += 3;  // Increased
+    if (classification.category === 'summary') score += 4;  // Increased
     
     // Hierarchical keywords
     const hierarchyKeywords = ['priority', 'importance', 'hierarchy', 'level',
@@ -130,8 +137,10 @@ export class IntelligentShapeAssigner {
     if (/priorit|rank|order of importance/i.test(content)) score += 2;
     
     // Conclusion indicators
-    if (section.title.toLowerCase().includes('conclusion')) score += 3;
-    if (section.title.toLowerCase().includes('summary')) score += 2;
+    const titleLower = section.title.toLowerCase();
+    if (titleLower.includes('conclusion')) score += 5;  // Increased
+    if (titleLower.includes('summary')) score += 4;  // Increased
+    if (titleLower.includes('overview')) score += 3;
     
     return score;
   }

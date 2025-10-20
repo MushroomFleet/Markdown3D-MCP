@@ -5,13 +5,17 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { EnhancedTransformer } from './core/enhanced-transformer.js';
+import { OptimizedTransformer } from './core/optimized-transformer.js';
 import { NM3XMLBuilder } from './core/xml-builder.js';
+import { MemoryMonitor } from './core/memory-monitor.js';
+import { MetricsCollector } from './core/metrics.js';
 
 export class Markdown3DServer {
   private server: Server;
-  private transformer: EnhancedTransformer;
+  private transformer: OptimizedTransformer;
   private xmlBuilder: NM3XMLBuilder;
+  private memoryMonitor: MemoryMonitor;
+  private metrics: MetricsCollector;
 
   constructor() {
     this.server = new Server(
@@ -26,8 +30,13 @@ export class Markdown3DServer {
       }
     );
 
-    this.transformer = new EnhancedTransformer();
+    this.transformer = new OptimizedTransformer();
     this.xmlBuilder = new NM3XMLBuilder();
+    this.memoryMonitor = new MemoryMonitor();
+    this.metrics = MetricsCollector.getInstance();
+    
+    // Start memory monitoring
+    this.memoryMonitor.startMonitoring(30000);
     
     this.setupHandlers();
   }
@@ -38,7 +47,7 @@ export class Markdown3DServer {
       tools: [
         {
           name: 'transform_to_nm3',
-          description: 'Transform markdown to NM3 with intelligent semantic analysis, cross-reference detection, and optimized spatial layout',
+          description: 'Transform markdown to NM3 with caching and streaming support for large documents',
           inputSchema: {
             type: 'object',
             properties: {
@@ -53,6 +62,16 @@ export class Markdown3DServer {
               author: {
                 type: 'string',
                 description: 'Optional author name'
+              },
+              useCache: {
+                type: 'boolean',
+                description: 'Enable caching (default: true)',
+                default: true
+              },
+              useStreaming: {
+                type: 'boolean',
+                description: 'Enable streaming for large documents (default: true)',
+                default: true
               }
             },
             required: ['markdown']
@@ -71,6 +90,22 @@ export class Markdown3DServer {
             },
             required: ['xml']
           }
+        },
+        {
+          name: 'get_performance_stats',
+          description: 'Get performance and cache statistics',
+          inputSchema: {
+            type: 'object',
+            properties: {}
+          }
+        },
+        {
+          name: 'clear_cache',
+          description: 'Clear all caches',
+          inputSchema: {
+            type: 'object',
+            properties: {}
+          }
         }
       ]
     }));
@@ -82,15 +117,22 @@ export class Markdown3DServer {
       try {
         switch (name) {
           case 'transform_to_nm3': {
-            const { markdown, title, author } = args as any;
+            const { markdown, title, author, useCache = true, useStreaming = true } = args as any;
             
-            // Use enhanced transformer (async)
-            console.error('Starting intelligent transformation...');
-            const nm3Doc = await this.transformer.transform(markdown);
+            // Check memory before processing
+            const memStatus = this.memoryMonitor.checkMemory();
+            if (memStatus === 'critical') {
+              this.memoryMonitor.forceGC();
+            }
             
-            // Override metadata if provided
-            if (title) nm3Doc.meta.title = title;
-            if (author) nm3Doc.meta.author = author;
+            // Use optimized transformer with caching and streaming
+            console.error('Starting optimized transformation...');
+            const nm3Doc = await this.transformer.transformWithOptimizations(markdown, {
+              title,
+              author,
+              useCache,
+              useStreaming
+            });
             
             // Build XML
             console.error(`✨ Generated ${nm3Doc.nodes.length} nodes with semantic analysis`);
@@ -138,6 +180,58 @@ export class Markdown3DServer {
             };
           }
           
+          case 'get_performance_stats': {
+            const cacheStats = this.transformer.getCacheStats();
+            const memoryStats = this.memoryMonitor.getStats();
+            const metrics = await this.metrics.getMetrics();
+
+            const report = `# Performance Statistics
+
+## Cache Stats
+${Object.entries(cacheStats)
+  .map(
+    ([cache, stats]) =>
+      `### ${cache}
+- Hits: ${stats.hits}
+- Misses: ${stats.misses}
+- Hit Rate: ${(stats.hitRate * 100).toFixed(2)}%
+- Keys: ${stats.keys}`
+  )
+  .join('\n\n')}
+
+## Memory Stats
+- Heap Used: ${memoryStats.heapUsedMB.toFixed(2)}MB
+- Heap Total: ${memoryStats.heapTotalMB.toFixed(2)}MB
+- Percent Used: ${memoryStats.percentUsed.toFixed(2)}%
+- RSS: ${(memoryStats.rss / 1024 / 1024).toFixed(2)}MB
+
+## Prometheus Metrics
+\`\`\`
+${metrics}
+\`\`\``;
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: report
+                }
+              ]
+            };
+          }
+          
+          case 'clear_cache': {
+            this.transformer.clearCache();
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'Cache cleared successfully'
+                }
+              ]
+            };
+          }
+          
           default:
             return {
               content: [
@@ -165,6 +259,7 @@ export class Markdown3DServer {
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('Markdown3D MCP v2.0 - Intelligence Engine Ready');
+    console.error('Markdown3D MCP v3.0 - Performance Engine Ready');
+    console.error('✨ Features: Caching, Streaming, Memory Monitoring');
   }
 }

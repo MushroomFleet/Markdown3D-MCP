@@ -5,6 +5,8 @@ import { ContentClassifier, ContentClassification } from './content-classifier.j
 import { IntelligentShapeAssigner } from './intelligent-shape-assigner.js';
 import { IntelligentColorMapper } from './intelligent-color-mapper.js';
 import { sanitizeColor, sanitizeShape } from '../constants/validation.js';
+import { SpatialOptimizerV2 } from './spatial-optimizer-v2.js';
+import { LayoutType } from './layout-templates.js';
 import * as GraphModule from 'graphology';
 import { dijkstra } from 'graphology-shortest-path';
 
@@ -18,9 +20,10 @@ interface EnhancedNode extends NM3Node {
 export class EnhancedTransformer {
   private parser: MarkdownParser;
   private referenceExtractor: ReferenceExtractor;
-  private contentClassifier: ContentClassifier;
-  private shapeAssigner: IntelligentShapeAssigner;
-  private colorMapper: IntelligentColorMapper;
+  protected contentClassifier: ContentClassifier;
+  protected shapeAssigner: IntelligentShapeAssigner;
+  protected colorMapper: IntelligentColorMapper;
+  protected spatialOptimizer: SpatialOptimizerV2;
   private graph: any;
   
   constructor() {
@@ -29,6 +32,7 @@ export class EnhancedTransformer {
     this.contentClassifier = new ContentClassifier();
     this.shapeAssigner = new IntelligentShapeAssigner();
     this.colorMapper = new IntelligentColorMapper();
+    this.spatialOptimizer = new SpatialOptimizerV2();
     this.graph = new Graph();
   }
   
@@ -320,102 +324,112 @@ export class EnhancedTransformer {
     return 'pastel-gray';
   }
   
+  private detectLayoutType(nodes: EnhancedNode[]): LayoutType | undefined {
+    const titles = nodes.map(n => n.title?.toLowerCase() || '');
+    
+    // Research paper indicators
+    if (titles.some(t => 
+      t.includes('abstract') || 
+      t.includes('method') || 
+      t.includes('result')
+    )) {
+      return 'research-paper';
+    }
+    
+    // Documentation indicators
+    if (titles.some(t => 
+      t.includes('api') || 
+      t.includes('reference') || 
+      t.includes('documentation')
+    )) {
+      return 'documentation';
+    }
+    
+    // Project planning indicators
+    if (titles.some(t => 
+      t.includes('task') || 
+      t.includes('goal') || 
+      t.includes('milestone')
+    )) {
+      return 'project-planning';
+    }
+    
+    // Tutorial indicators
+    if (titles.some(t => 
+      t.includes('step') || 
+      t.includes('tutorial') || 
+      t.includes('guide')
+    )) {
+      return 'tutorial';
+    }
+    
+    // Hierarchical indicators
+    const maxLevel = Math.max(...nodes.map((n: any) => n.level || 1));
+    if (nodes.length > 10 && maxLevel >= 4) {
+      return 'hierarchical';
+    }
+    
+    // Default: no template, use force-directed only
+    return undefined;
+  }
+  
   private optimizeSpatialLayout(nodes: EnhancedNode[], links: NM3Link[]): void {
-    // Group nodes by classification category
-    const groups = new Map<string, EnhancedNode[]>();
+    const nodeCount = nodes.length;
+    const layoutType = this.detectLayoutType(nodes);
     
-    nodes.forEach(node => {
-      const category = node.classification?.category || 'unknown';
-      if (!groups.has(category)) {
-        groups.set(category, []);
-      }
-      groups.get(category)!.push(node);
-    });
+    console.error(`📐 Layout type: ${layoutType || 'force-directed'}`);
     
-    // Position groups in 3D space
-    const angleStep = (Math.PI * 2) / groups.size;
-    let angle = 0;
-    let groupIndex = 0;
-    
-    for (const [category, groupNodes] of groups) {
-      const radius = 15 + groupIndex * 5;
-      const centerX = Math.cos(angle) * radius;
-      const centerZ = Math.sin(angle) * radius;
-      
-      // Position nodes within group
-      groupNodes.forEach((node, index) => {
-        const localAngle = (index / groupNodes.length) * Math.PI * 2;
-        const localRadius = Math.min(5, groupNodes.length);
-        
-        node.x = centerX + Math.cos(localAngle) * localRadius;
-        node.z = centerZ + Math.sin(localAngle) * localRadius;
-        
-        // Y position based on importance
-        node.y = (node.scale || 1) * 2 - 2;
-        
-        // Adjust for hierarchy
-        if (node.classification?.category === 'summary' || 
-            node.classification?.category === 'analytical') {
-          node.y += 3;
+    // Configure optimization based on document size
+    if (nodeCount < 20) {
+      // Small documents: Best quality
+      this.spatialOptimizer.optimize(nodes, links, {
+        useForceDirected: true,
+        useCollisionResolution: true,
+        useLayoutTemplate: layoutType,
+        maxIterations: 100,
+        forceConfig: {
+          repulsionStrength: 40,
+          attractionStrength: 0.15,
+          centeringStrength: 0.01,
+          damping: 0.75,
+          minDistance: 3,
+          maxDistance: 30
         }
       });
-      
-      angle += angleStep;
-      groupIndex++;
+    } else if (nodeCount < 100) {
+      // Medium documents: Balanced
+      this.spatialOptimizer.optimize(nodes, links, {
+        useForceDirected: true,
+        useCollisionResolution: true,
+        useLayoutTemplate: layoutType,
+        maxIterations: 60,
+        forceConfig: {
+          repulsionStrength: 50,
+          attractionStrength: 0.1,
+          centeringStrength: 0.01,
+          damping: 0.8,
+          minDistance: 3,
+          maxDistance: 30
+        }
+      });
+    } else {
+      // Large documents: Performance priority
+      this.spatialOptimizer.optimize(nodes, links, {
+        useForceDirected: false,  // Skip for performance
+        useCollisionResolution: true,
+        useLayoutTemplate: layoutType || 'concept-map',
+        minSeparation: 2.5
+      });
     }
     
-    // Apply force-directed adjustments to prevent overlaps
-    this.applyForceDirectedLayout(nodes, links, 10);
+    // Log final spatial statistics
+    const bounds = this.spatialOptimizer.calculateBounds(nodes);
+    console.error(`   Spatial bounds: X[${bounds.minX.toFixed(1)}, ${bounds.maxX.toFixed(1)}] ` +
+                  `Y[${bounds.minY.toFixed(1)}, ${bounds.maxY.toFixed(1)}] ` +
+                  `Z[${bounds.minZ.toFixed(1)}, ${bounds.maxZ.toFixed(1)}]`);
   }
   
-  private applyForceDirectedLayout(nodes: EnhancedNode[], links: NM3Link[], iterations: number): void {
-    for (let iter = 0; iter < iterations; iter++) {
-      // Calculate forces
-      const forces = new Map<string, { x: number, y: number, z: number }>();
-      
-      nodes.forEach(node => {
-        forces.set(node.id, { x: 0, y: 0, z: 0 });
-      });
-      
-      // Repulsion between all nodes
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const node1 = nodes[i];
-          const node2 = nodes[j];
-          
-          const dx = node2.x - node1.x;
-          const dy = node2.y - node1.y;
-          const dz = node2.z - node1.z;
-          const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          
-          if (distance > 0 && distance < 10) {
-            const force = 5 / (distance * distance);
-            const fx = (dx / distance) * force;
-            const fy = (dy / distance) * force;
-            const fz = (dz / distance) * force;
-            
-            forces.get(node1.id)!.x -= fx;
-            forces.get(node1.id)!.y -= fy;
-            forces.get(node1.id)!.z -= fz;
-            forces.get(node2.id)!.x += fx;
-            forces.get(node2.id)!.y += fy;
-            forces.get(node2.id)!.z += fz;
-          }
-        }
-      }
-      
-      // Apply forces with damping
-      const damping = 0.1;
-      nodes.forEach(node => {
-        const force = forces.get(node.id)!;
-        node.x += force.x * damping;
-        node.y += force.y * damping;
-        node.z += force.z * damping;
-      });
-    }
-  }
-  
-  private calculateOptimalCamera(nodes: EnhancedNode[]) {
+  protected calculateOptimalCamera(nodes: EnhancedNode[]) {
     // Calculate bounding box
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
