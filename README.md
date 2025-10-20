@@ -501,7 +501,7 @@ node dist/index.js validate output/test.nm3
 
 ## 📐 NM3 Format
 
-NM3 (Navigable Markdown 3D) is an XML-based format for representing documents in 3D space. Each document consists of:
+[NM3 (Navigable Markdown 3D)](https://github.com/MushroomFleet/NM3-nested-markdown-3d) is an XML-based format for representing documents in 3D space. Each document consists of:
 
 - **Metadata**: Title, author, creation date, tags
 - **Camera**: Initial viewpoint and field of view
@@ -572,41 +572,11 @@ NM3 files can also be viewed with:
 
 ## 📚 Citation
 
-### Academic Citation
-
-If you use Markdown3D MCP in your research, please cite:
-
-```bibtex
-@software{markdown3d_mcp,
-  title = {Markdown3D MCP: Semantic 3D Document Visualization},
-  author = {[Your Name]},
-  year = {2025},
-  url = {https://github.com/yourusername/markdown3d-mcp},
-  version = {1.0.0}
-}
-```
 
 ### Related Projects
 
-*(Placeholder for related work, inspirations, and acknowledgments)*
+*(Placeholder for related NM3 works, inspirations, and acknowledgments)*
 
-- Project Name 1 - Description
-- Project Name 2 - Description
-
-### Contributors
-
-*(Placeholder for contributors list)*
-
-- [Contributor Name](https://github.com/contributor) - Role/Contribution
-
-### Acknowledgments
-
-*(Placeholder for acknowledgments)*
-
-Special thanks to:
-- Organizations or individuals who supported the project
-- Inspirational projects or papers
-- Community contributors
 
 ## 🤝 Contributing
 
@@ -681,4 +651,5 @@ If you use this codebase in your research or project, please cite:
 **Made with ❤️ by the Markdown3D team**
 
 *Transform your documents into navigable 3D knowledge spaces*
+
 
