@@ -9,6 +9,7 @@ import { OptimizedTransformer } from './core/optimized-transformer.js';
 import { NM3XMLBuilder } from './core/xml-builder.js';
 import { MemoryMonitor } from './core/memory-monitor.js';
 import { MetricsCollector } from './core/metrics.js';
+import { ChunkManager } from './core/chunk-manager.js';
 
 export class Markdown3DServer {
   private server: Server;
@@ -16,6 +17,7 @@ export class Markdown3DServer {
   private xmlBuilder: NM3XMLBuilder;
   private memoryMonitor: MemoryMonitor;
   private metrics: MetricsCollector;
+  private chunkManager: ChunkManager;
 
   constructor() {
     this.server = new Server(
@@ -34,6 +36,7 @@ export class Markdown3DServer {
     this.xmlBuilder = new NM3XMLBuilder();
     this.memoryMonitor = new MemoryMonitor();
     this.metrics = MetricsCollector.getInstance();
+    this.chunkManager = new ChunkManager(30000); // 30KB chunks
     
     // Start memory monitoring
     this.memoryMonitor.startMonitoring(30000);
@@ -47,7 +50,7 @@ export class Markdown3DServer {
       tools: [
         {
           name: 'transform_to_nm3',
-          description: 'Transform markdown to NM3 with caching and streaming support for large documents',
+          description: 'Transform markdown to NM3 (returns full XML - may truncate for large docs >300 nodes)',
           inputSchema: {
             type: 'object',
             properties: {
@@ -75,6 +78,79 @@ export class Markdown3DServer {
               }
             },
             required: ['markdown']
+          }
+        },
+        {
+          name: 'transform_to_nm3_chunked',
+          description: 'Transform markdown to NM3 with chunked output (prevents truncation for large docs)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              markdown: {
+                type: 'string',
+                description: 'Markdown content to transform'
+              },
+              outputName: {
+                type: 'string',
+                description: 'Output filename (default: output.nm3)',
+                default: 'output.nm3'
+              },
+              workingDirectory: {
+                type: 'string',
+                description: 'Working directory for output file (captures where the final NM3 should be saved)'
+              },
+              title: {
+                type: 'string',
+                description: 'Optional document title'
+              },
+              author: {
+                type: 'string',
+                description: 'Optional author name'
+              },
+              useCache: {
+                type: 'boolean',
+                description: 'Enable caching (default: true)',
+                default: true
+              },
+              useStreaming: {
+                type: 'boolean',
+                description: 'Enable streaming for large documents (default: true)',
+                default: true
+              }
+            },
+            required: ['markdown']
+          }
+        },
+        {
+          name: 'assemble_chunks',
+          description: 'Assemble chunked output into final NM3 file',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              manifestPath: {
+                type: 'string',
+                description: 'Path to manifest.json from chunked transform'
+              },
+              outputDirectory: {
+                type: 'string',
+                description: 'Optional output directory for the final NM3 file (defaults to current working directory)'
+              }
+            },
+            required: ['manifestPath']
+          }
+        },
+        {
+          name: 'get_chunk_status',
+          description: 'Check status of chunked output',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              manifestPath: {
+                type: 'string',
+                description: 'Path to manifest.json'
+              }
+            },
+            required: ['manifestPath']
           }
         },
         {
@@ -119,6 +195,11 @@ export class Markdown3DServer {
           case 'transform_to_nm3': {
             const { markdown, title, author, useCache = true, useStreaming = true } = args as any;
             
+            // Warn about large documents
+            if (markdown.length > 100000) {
+              console.error('⚠️  WARNING: Large document detected. Consider using transform_to_nm3_chunked instead.');
+            }
+            
             // Check memory before processing
             const memStatus = this.memoryMonitor.checkMemory();
             if (memStatus === 'critical') {
@@ -161,6 +242,149 @@ export class Markdown3DServer {
                   text: xml
                 }
               ]
+            };
+          }
+          
+          case 'transform_to_nm3_chunked': {
+            const { 
+              markdown, 
+              outputName = 'output.nm3',
+              workingDirectory,
+              title, 
+              author, 
+              useCache = true, 
+              useStreaming = true 
+            } = args as any;
+            
+            console.error('🔨 Starting chunked transformation...');
+            if (workingDirectory) {
+              console.error(`   📁 Capturing working directory: ${workingDirectory}`);
+            }
+            
+            // Memory check
+            const memStatus = this.memoryMonitor.checkMemory();
+            if (memStatus === 'critical') {
+              this.memoryMonitor.forceGC();
+            }
+            
+            // Transform to NM3 document
+            console.error('   Phase 1: Transforming markdown to NM3...');
+            const nm3Doc = await this.transformer.transformWithOptimizations(markdown, {
+              title,
+              author,
+              useCache,
+              useStreaming
+            });
+            
+            console.error(`   ✨ Generated ${nm3Doc.nodes.length} nodes`);
+            console.error(`   🔗 Created ${nm3Doc.links.length} links`);
+            
+            // Build XML
+            console.error('   Phase 2: Building XML...');
+            const xml = this.xmlBuilder.buildXML(nm3Doc);
+            
+            // Validate
+            const validation = this.xmlBuilder.validateXML(xml);
+            if (!validation.valid) {
+              return {
+                content: [{
+                  type: 'text',
+                  text: `Error: Generated invalid XML - ${validation.error}`
+                }]
+              };
+            }
+            
+            // Chunk the XML
+            console.error('   Phase 3: Chunking XML output...');
+            const chunkResult = await this.chunkManager.chunkXML(xml, outputName, workingDirectory);
+            
+            // Return manifest info (NOT the XML itself)
+            const response = `✅ Chunked transformation complete!
+
+**Document Statistics:**
+- Nodes: ${nm3Doc.nodes.length}
+- Links: ${nm3Doc.links.length}
+- Total size: ${xml.length} characters
+
+**Chunking Results:**
+- Total chunks: ${chunkResult.chunkCount}
+- Chunk size: 30,000 characters each
+- Manifest path: ${chunkResult.manifestPath}
+- Temp directory: ${chunkResult.tempDir}
+
+**Next Step:**
+Call \`assemble_chunks\` with the manifest path to create the final ${outputName} file.
+
+**Manifest Path:**
+\`\`\`
+${chunkResult.manifestPath}
+\`\`\``;
+
+            return {
+              content: [{
+                type: 'text',
+                text: response
+              }]
+            };
+          }
+          
+          case 'assemble_chunks': {
+            const { manifestPath, outputDirectory } = args as any;
+            
+            console.error('🔨 Assembling chunks...');
+            if (outputDirectory) {
+              console.error(`   Output directory: ${outputDirectory}`);
+            }
+            
+            try {
+              const outputPath = await this.chunkManager.assembleChunks(manifestPath, outputDirectory);
+              
+              return {
+                content: [{
+                  type: 'text',
+                  text: `✅ Assembly complete!\n\nFinal file written to: ${outputPath}\n\nAll chunks verified and concatenated successfully.`
+                }]
+              };
+            } catch (error: any) {
+              return {
+                content: [{
+                  type: 'text',
+                  text: `❌ Assembly failed: ${error.message}\n\nPlease check that all chunks are present and the manifest is valid.`
+                }]
+              };
+            }
+          }
+          
+          case 'get_chunk_status': {
+            const { manifestPath } = args as any;
+            
+            const status = await this.chunkManager.getChunkStatus(manifestPath);
+            
+            if (!status.exists) {
+              return {
+                content: [{
+                  type: 'text',
+                  text: `❌ Manifest not found: ${manifestPath}`
+                }]
+              };
+            }
+            
+            const statusText = `📊 Chunk Status
+
+**Manifest:** ${manifestPath}
+**Total chunks:** ${status.totalChunks}
+**Chunks present:** ${status.chunksPresent}
+**Missing chunks:** ${status.missingChunks.length}
+
+${status.missingChunks.length > 0 ? 
+  `⚠️  Missing chunks:\n${status.missingChunks.map(c => `  - ${c}`).join('\n')}` : 
+  '✅ All chunks present and ready for assembly'}`;
+            
+            return {
+              content: [{
+                type: 'text',
+                text: statusText
+              }]
             };
           }
           
@@ -259,7 +483,7 @@ ${metrics}
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('Markdown3D MCP v3.0 - Performance Engine Ready');
-    console.error('✨ Features: Caching, Streaming, Memory Monitoring');
+    console.error('Markdown3D MCP v4.0 - Chunked Output System Ready');
+    console.error('✨ Features: Caching, Streaming, Memory Monitoring, Chunked Output');
   }
 }
